@@ -1,0 +1,19 @@
+@startuml
+actor Player1 as p1
+participant UI
+participant Server
+participant DB
+
+p1 -> UI: login
+UI -> Server: loginRequest(username, password)
+Server -> DB: query users
+DB --> Server: userInfo
+Server -> Server: check user password
+alt password matches
+    Server -> UI: loginResponse(ok)
+    UI -> p1: show logged in successfully
+else password does not match
+    Server -> UI: loginResponse(invalid password)
+    UI -> p1: show login error
+end
+@enduml
