@@ -3,15 +3,38 @@ package ua.kpi.softeng_course.tictactoe.model;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
+import org.mockito.Mockito;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 class TicTacToeRoundImplTest {
+
+
+    @Test
+    void testRoundIdGenerated() {
+
+        var roundIdGenerator = Mockito.mock(RoundIdGenerator.class);
+
+        when(roundIdGenerator.nextRoundId()).thenReturn(123);
+
+        var roundModel = new TicTacToeRoundImpl(roundIdGenerator);
+
+        assertNull(roundModel.roundId());
+
+        roundModel.start();
+
+        assertNotNull(roundModel.roundId());
+
+        assertEquals(123, roundModel.roundId());
+    }
 
     @Test
     void testRoundStarts() {
 
         // arrange
-        var roundModel = new TicTacToeRoundImpl();
+        var roundIdGenerator = new RoundIdGenerator();
+        var roundModel = new TicTacToeRoundImpl(roundIdGenerator);
 
         assertEquals(NextAction.Action.START, roundModel.nextAction().get().getAction());
 
@@ -25,7 +48,8 @@ class TicTacToeRoundImplTest {
 
     @Test
     void testStartThrowsIfAlreadyStarted() {
-        var roundModel = new TicTacToeRoundImpl();
+        var roundIdGenerator = new RoundIdGenerator();
+        var roundModel = new TicTacToeRoundImpl(roundIdGenerator);
 
         assertEquals(NextAction.Action.START, roundModel.nextAction().get().getAction());
 
@@ -41,7 +65,8 @@ class TicTacToeRoundImplTest {
 
     @Test
     void testFinishes() {
-        var roundModel = new TicTacToeRoundImpl();
+        var roundIdGenerator = new RoundIdGenerator();
+        var roundModel = new TicTacToeRoundImpl(roundIdGenerator);
 
         roundModel.start();
 
@@ -52,7 +77,8 @@ class TicTacToeRoundImplTest {
 
     @Test
     void testThrowsIfAlreadyFinished() {
-        var roundModel = new TicTacToeRoundImpl();
+        var roundIdGenerator = new RoundIdGenerator();
+        var roundModel = new TicTacToeRoundImpl(roundIdGenerator);
 
         roundModel.start();
 

@@ -1,8 +1,17 @@
 package ua.kpi.softeng_course.tictactoe.model;
 
 import java.util.Optional;
+import java.util.Random;
 
 public class TicTacToeRoundImpl implements TicTacToeRound {
+
+    private final RoundIdGenerator roundIdGenerator;
+
+    public TicTacToeRoundImpl(RoundIdGenerator roundIdGenerator) {
+        this.roundIdGenerator = roundIdGenerator;
+    }
+
+    private Integer roundId;
 
     private Status status = Status.NOT_STARTED;
 
@@ -12,6 +21,7 @@ public class TicTacToeRoundImpl implements TicTacToeRound {
             throw new IllegalStateException("The round has already been started");
         } else {
             status = Status.ONGOING;
+            roundId = roundIdGenerator.nextRoundId();
         }
     }
 
@@ -34,6 +44,10 @@ public class TicTacToeRoundImpl implements TicTacToeRound {
         }
 
         return Optional.empty();
+    }
+
+    public Integer roundId() {
+        return roundId;
     }
 
     enum Status {
