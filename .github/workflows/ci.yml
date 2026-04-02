@@ -3,10 +3,14 @@ name: Java CI with Maven
 on:
   [push]
 
+
 jobs:
   build:
 
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v3
@@ -22,6 +26,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and deploy artifacts
-        run: mvn --batch-mode deploy -Drevision=${{ steps.tag_version.outputs.new_tag }} -f ./server/pom.xml -DartifactId=server
+        run: mvn --batch-mode deploy -Drevision=${{ steps.tag_version.outputs.new_tag }} -f ./server/pom.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
