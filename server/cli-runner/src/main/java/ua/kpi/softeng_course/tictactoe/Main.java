@@ -4,6 +4,7 @@ import ua.kpi.softeng_course.tictactoe.model.RoundIdGenerator;
 import ua.kpi.softeng_course.tictactoe.model.TicTacToeRoundImpl;
 
 public class Main {
+
     public static void main(String[] args) {
         System.out.println("Hello world!");
 
