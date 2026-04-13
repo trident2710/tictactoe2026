@@ -6,7 +6,7 @@
 
     <groupId>ua.kpi.softeng_course.tictactoe</groupId>
     <artifactId>tictactoe2026</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <modules>
