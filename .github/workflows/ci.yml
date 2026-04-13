@@ -23,6 +23,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and deploy artifacts
-        run: mvn --batch-mode deploy -Drevision=${{ steps.tag_version.outputs.new_tag }} -f ./server/pom.xml
+        run: mvn --batch-mode deploy -Drevision=${{ steps.tag_version.outputs.new_tag }} -f ./server/pom.xml -s ./server/.m2/settings.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
