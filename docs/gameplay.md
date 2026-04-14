@@ -1,5 +1,3 @@
-# Tic Tac Toe 2026
-
 ```mermaid
 sequenceDiagram
     title Two Players Login and Play TicTacToe

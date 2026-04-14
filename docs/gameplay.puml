@@ -1,0 +1,56 @@
+@startuml
+title Two Players Login and Play TicTacToe
+
+actor "Player 1" as P1
+actor "Player 2" as P2
+participant Server as S
+
+== Authentication ==
+
+P1 -> S: POST /login (authenticate user) { username: "testUser1" }
+S --> P1: 200 { user, sessionId1 }
+
+P2 -> S: POST /login (authenticate user) { username: "testUser2" }
+S --> P2: 200 { user, sessionId2 }
+
+== Round Setup ==
+
+P1 -> S: POST /rounds (create round) { sessionId: sessionId1 }
+note right of S: P1 → seat X\nstatus=NOT_STARTED
+S --> P1: 200 { roundId, status: NOT_STARTED }
+
+P2 -> S: POST /rounds/join (join round) { sessionId: sessionId2, roundId }
+note right of S: P2 → seat O\nstatus=NOT_STARTED
+S --> P2: 200 { roundId, status: NOT_STARTED }
+
+== Game Start ==
+
+P1 -> S: POST /rounds/start (start round) { sessionId: sessionId1, roundId }
+note right of S: status=ONGOING\nnextAction=MOVE_X
+S --> P1: 200 { status: ONGOING }
+
+== Gameplay ==
+
+loop until win or draw
+    P1 -> S: GET /rounds/{roundId} (poll state)
+    S --> P1: 200 { nextAction: MOVE_X, board: [...] }
+
+    P1 -> S: POST /rounds/move (make move) { sessionId: sessionId1, roundId, row, col }
+    note right of S: board[row][col]=X\nnextAction=MOVE_O
+    S --> P1: 200 { updated state }
+
+    P2 -> S: GET /rounds/{roundId} (poll state)
+    S --> P2: 200 { nextAction: MOVE_O, board: [...] }
+
+    P2 -> S: POST /rounds/move (make move) { sessionId: sessionId2, roundId, row, col }
+    note right of S: board[row][col]=O\nnextAction=MOVE_X
+    S --> P2: 200 { updated state }
+end
+
+== Round Finish ==
+
+note over S: X completes a line\nresult=X_WINS\nnextAction=FINISH
+P1 -> S: POST /rounds/finish (finish round) { sessionId: sessionId1, roundId }
+S --> P1: 200 { status: FINISHED, result: X_WINS }
+
+@enduml

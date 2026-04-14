@@ -12,6 +12,7 @@
     <modules>
         <module>model</module>
         <module>cli-runner</module>
+        <module>web</module>
     </modules>
 
 
