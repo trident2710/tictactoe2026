@@ -2,7 +2,11 @@ package ua.kpi.softeng_course.tictactoe.model;
 
 public class NextAction {
 
-    private final Action action;
+    private Action action;
+
+    public NextAction() {
+        this.action = null;
+    }
 
     public NextAction(Action action) {
         this.action = action;
@@ -12,7 +16,12 @@ public class NextAction {
         return action;
     }
 
+    public void setAction(Action action) {
+        this.action = action;
+    }
+
     public enum Action {
+        OCCUPY_SEATS,
         START,
         MOVE_X,
         MOVE_O,
