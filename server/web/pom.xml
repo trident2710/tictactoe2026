@@ -86,4 +86,24 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.4.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>ua.kpi.softeng_course.tictactoe.TicTacToeServer</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
