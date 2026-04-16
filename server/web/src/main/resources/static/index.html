@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TicTacToe</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: monospace;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .container {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 { font-size: 1.8rem; margin-bottom: 24px; }
+    h2 { font-size: 1.3rem; margin-bottom: 20px; }
+
+    .field { margin-bottom: 12px; }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid #999;
+      border-radius: 4px;
+      background: #fff;
+      font-family: monospace;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: #f0f0f0; }
+    button:disabled { opacity: 0.4; cursor: default; }
+
+    .btn-primary {
+      background: #222;
+      color: #fff;
+      border-color: #222;
+    }
+    .btn-primary:hover:not(:disabled) { background: #444; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 20px 0;
+    }
+
+    .error { color: #c00; margin-top: 8px; font-size: 0.9rem; min-height: 1.2em; }
+
+    /* ---- Game ---- */
+    .info-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 12px;
+    }
+
+    .status {
+      text-align: center;
+      margin-bottom: 16px;
+      font-size: 1rem;
+      font-weight: bold;
+      min-height: 1.4em;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      font-size: 2rem;
+      font-weight: bold;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      background: #fafafa;
+      cursor: default;
+    }
+    .cell.x { color: #1a6fc4; }
+    .cell.o { color: #c43a1a; }
+    .cell.empty:not(:disabled) {
+      cursor: pointer;
+      background: #fff;
+    }
+    .cell.empty:not(:disabled):hover { background: #f0f0f0; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== LOGIN ===== -->
+  <div id="login-section">
+    <h1>TicTacToe</h1>
+    <div class="field">
+      <input id="username-input" type="text" placeholder="Username" autofocus>
+    </div>
+    <button class="btn-primary" onclick="login()">Login</button>
+    <p class="error" id="login-error"></p>
+  </div>
+
+  <!-- ===== LOBBY ===== -->
+  <div id="lobby-section" style="display:none">
+    <h2>Hello, <span id="display-username"></span></h2>
+    <button class="btn-primary" onclick="createRound()">Create Round</button>
+
+    <hr class="divider">
+
+    <div class="field">
+      <input id="join-round-input" type="number" placeholder="Round ID">
+    </div>
+    <button onclick="joinRound()">Join Round</button>
+    <p class="error" id="lobby-error"></p>
+  </div>
+
+  <!-- ===== GAME ===== -->
+  <div id="game-section" style="display:none">
+    <div class="info-bar">
+      <span>Round <strong id="display-round-id"></strong></span>
+      <span>You: <strong id="display-player-type"></strong></span>
+    </div>
+
+    <div class="status" id="status-message"></div>
+
+    <div id="board"></div>
+
+    <div class="actions">
+      <button id="start-btn" class="btn-primary" onclick="startRound()" style="display:none">Start Game</button>
+      <button id="finish-btn" class="btn-primary" onclick="finishRound()" style="display:none">Finish Game</button>
+      <button onclick="backToLobby()">Back</button>
+    </div>
+    <p class="error" id="game-error"></p>
+  </div>
+
+</div>
+
+<script>
+  // ---- State ----
+  let sessionId   = null;
+  let userId      = null;
+  let roundId     = null;
+  let playerType  = null;  // "X" or "O"
+  let isOwner     = false;
+  let pollHandle  = null;
+
+  // ---- Helpers ----
+  async function apiPost(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    return data;
+  }
+
+  async function apiGet(url) {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    return data;
+  }
+
+  function showSection(id) {
+    ['login-section', 'lobby-section', 'game-section'].forEach(s => {
+      document.getElementById(s).style.display = (s === id) ? '' : 'none';
+    });
+  }
+
+  function setError(id, msg) {
+    document.getElementById(id).textContent = msg || '';
+  }
+
+  // ---- Login ----
+  async function login() {
+    const un = document.getElementById('username-input').value.trim();
+    if (!un) { setError('login-error', 'Enter a username.'); return; }
+    try {
+      const data = await apiPost('/login', {username: un});
+      sessionId = data.sessionId;
+      userId    = data.user.id;
+      document.getElementById('display-username').textContent = data.user.username;
+      setError('login-error', '');
+      showSection('lobby-section');
+    } catch (e) {
+      setError('login-error', e.message);
+    }
+  }
+
+  // ---- Create round ----
+  async function createRound() {
+    try {
+      const data = await apiPost('/rounds', {sessionId});
+      enterGame(data.round, true);
+      setError('lobby-error', '');
+    } catch (e) {
+      setError('lobby-error', e.message);
+    }
+  }
+
+  // ---- Join round ----
+  async function joinRound() {
+    const rid = parseInt(document.getElementById('join-round-input').value);
+    if (!rid) { setError('lobby-error', 'Enter a round ID.'); return; }
+    try {
+      const data = await apiPost('/rounds/join', {sessionId, roundId: rid});
+      enterGame(data.round, false);
+      setError('lobby-error', '');
+    } catch (e) {
+      setError('lobby-error', e.message);
+    }
+  }
+
+  function enterGame(round, owner) {
+    roundId  = round.roundId;
+    isOwner  = owner;
+    const seat = round.seats.find(s => s.playerId === userId);
+    playerType = seat ? seat.playerType : null;
+    document.getElementById('display-round-id').textContent  = roundId;
+    document.getElementById('display-player-type').textContent = playerType || '?';
+    showSection('game-section');
+    renderGame(round);
+    startPolling();
+  }
+
+  // ---- Start / Finish / Move ----
+  async function startRound() {
+    try {
+      await apiPost('/rounds/start', {sessionId, roundId});
+      setError('game-error', '');
+    } catch (e) {
+      setError('game-error', e.message);
+    }
+  }
+
+  async function finishRound() {
+    try {
+      await apiPost('/rounds/finish', {sessionId, roundId});
+      setError('game-error', '');
+    } catch (e) {
+      setError('game-error', e.message);
+    }
+  }
+
+  async function makeMove(row, col) {
+    try {
+      await apiPost('/rounds/move', {sessionId, roundId, row, col});
+      setError('game-error', '');
+    } catch (e) {
+      setError('game-error', e.message);
+    }
+  }
+
+  // ---- Polling ----
+  function startPolling() {
+    stopPolling();
+    poll();
+    pollHandle = setInterval(poll, 2000);
+  }
+
+  function stopPolling() {
+    if (pollHandle !== null) { clearInterval(pollHandle); pollHandle = null; }
+  }
+
+  async function poll() {
+    try {
+      const data = await apiGet(`/rounds/${roundId}`);
+      renderGame(data.round);
+    } catch (_) { /* ignore transient poll errors */ }
+  }
+
+  // ---- Render ----
+  function renderGame(round) {
+    // Refresh playerType in case seats just updated
+    const seat = round.seats.find(s => s.playerId === userId);
+    if (seat) {
+      playerType = seat.playerType;
+      document.getElementById('display-player-type').textContent = playerType;
+    }
+
+    const action   = round.nextAction ? round.nextAction.action : null;
+    const myTurn   = (action === 'MOVE_X' && playerType === 'X')
+                  || (action === 'MOVE_O' && playerType === 'O');
+    const canClick = round.status === 'ONGOING' && myTurn;
+
+    // Status message
+    let msg = '';
+    if (round.status === 'NOT_STARTED') {
+      if (round.seats.length < 2) {
+        msg = `Waiting for opponent — share Round ID: ${round.roundId}`;
+      } else if (isOwner) {
+        msg = 'Both players joined. Start the game!';
+      } else {
+        msg = 'Waiting for owner to start...';
+      }
+    } else if (round.status === 'ONGOING') {
+      msg = myTurn ? 'Your turn!' : "Opponent's turn...";
+    } else if (round.status === 'FINISHED') {
+      const r = round.gameResult;
+      if (r === 'DRAW') {
+        msg = "It's a draw!";
+      } else {
+        const iWon = (r === 'X_WINS' && playerType === 'X') || (r === 'O_WINS' && playerType === 'O');
+        msg = iWon ? 'You win!' : 'You lose.';
+      }
+    }
+    document.getElementById('status-message').textContent = msg;
+
+    // Board: flat list → 3×3 grid
+    const grid = Array.from({length: 3}, () => Array(3).fill('EMPTY'));
+    round.board.forEach(cell => { grid[cell.row][cell.col] = cell.state; });
+
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const state = grid[r][c];
+        const btn   = document.createElement('button');
+        btn.className = 'cell ' + state.toLowerCase();
+        btn.textContent = state === 'EMPTY' ? '' : state;
+        btn.disabled = !canClick || state !== 'EMPTY';
+        if (canClick && state === 'EMPTY') {
+          btn.onclick = () => makeMove(r, c);
+        }
+        boardEl.appendChild(btn);
+      }
+    }
+
+    // Control buttons
+    const showStart  = isOwner && round.status === 'NOT_STARTED' && round.seats.length === 2;
+    const showFinish = isOwner && action === 'FINISH';
+    document.getElementById('start-btn').style.display  = showStart  ? '' : 'none';
+    document.getElementById('finish-btn').style.display = showFinish ? '' : 'none';
+
+    if (round.status === 'FINISHED') stopPolling();
+  }
+
+  // ---- Back to lobby ----
+  function backToLobby() {
+    stopPolling();
+    roundId = playerType = null;
+    isOwner = false;
+    document.getElementById('join-round-input').value = '';
+    setError('lobby-error', '');
+    showSection('lobby-section');
+  }
+
+  // ---- Keyboard shortcuts ----
+  document.getElementById('username-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+  document.getElementById('join-round-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') joinRound();
+  });
+</script>
+</body>
+</html>
